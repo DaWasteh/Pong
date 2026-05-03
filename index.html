@@ -205,11 +205,34 @@
     </div>
     <div id="scoreboard" class="hidden">
         <h3>Beste Ergebnisse</h3>
+        <button onclick="hideScoreboard()">Zurück zum Menü</button>
         <div id="scoreboard-entries"></div>
     </div>
 
     <script>
-        // === Canvas & Kontext ===
+        // === Game Constants ===
+        const PADDLE_WIDTH = 12;
+        const PADDLE_HEIGHT = 100;
+        const BALL_SIZE = 12;
+        const WINNING_SCORE = 7;
+        const BASE_SPEED = 6;
+        const MAX_SPEED = 14;
+
+        // === Game State ===
+        let gameMode = 'ai';
+        let difficulty = 'medium';
+        let gameRunning = false;
+        let animationId = null;
+        let player1Score = 0;
+        let player2Score = 0;
+        let lastHitPlayer = null;
+        let gameWon = false;
+
+        // === Player Names ===
+        let player1Name = 'Spieler 1';
+        let player2Name = 'Spieler 2';
+
+        // === DOM Elements ===
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const overlay = document.getElementById('ui-overlay');
@@ -221,31 +244,7 @@
         const scoreboard = document.getElementById('scoreboard');
         const scoreboardEntries = document.getElementById('scoreboard-entries');
 
-        // === Spielkonstanten ===
-        const PADDLE_WIDTH = 12;
-        const PADDLE_HEIGHT = 100;
-        const BALL_SIZE = 12;
-        const WINNING_SCORE = 7;
-        const BASE_SPEED = 6;
-        const MAX_SPEED = 14;
-
-        // === Spielmodus & Schwierigkeit ===
-        let gameMode = 'ai'; // 'ai' oder '2p'
-        let difficulty = 'medium'; // 'easy', 'medium', 'hard'
-
-        // === Spielzustand ===
-        let gameRunning = false;
-        let animationId = null;
-        let player1Score = 0;
-        let player2Score = 0;
-        let lastHitPlayer = null;
-        let gameWon = false;
-
-        // === Spieler-Namen ===
-        let player1Name = 'Spieler 1';
-        let player2Name = 'Spieler 2';
-
-        // === Spieler 1 (links) ===
+        // === Game Objects ===
         const player1 = {
             x: 15,
             y: 0,
@@ -257,7 +256,6 @@
             isTouching: false
         };
 
-        // === Spieler 2 / KI (rechts) ===
         const player2 = {
             x: 0,
             y: 0,
@@ -269,7 +267,6 @@
             isTouching: false
         };
 
-        // === Ball ===
         const ball = {
             x: 0,
             y: 0,
@@ -280,15 +277,13 @@
             speedMultiplier: 1
         };
 
-        // === Partikel für Effekte ===
         let particles = [];
-
-        // === Scoreboard ===
         let scoreboardData = JSON.parse(localStorage.getItem('pongScoreboard')) || [];
-
-        // === Touch-Kontrollbereiche ===
         let touchLeftActive = false;
         let touchRightActive = false;
+
+        // === Sounds ===
+        const sounds = {};
 
         function initSounds() {
             try {
@@ -296,7 +291,7 @@
                 sounds.score = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAACAgICA...');
                 sounds.win = new Audio('data:audio/wav;base64,UklGR0lGAAAAXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAACAgICA...');
             } catch (e) {
-                // Falls Audio nicht unterstützt wird
+                console.log('Audio not supported');
             }
         }
 
@@ -307,6 +302,7 @@
             }
         }
 
+        // === Particle System ===
         function createParticles(x, y, color, count = 15) {
             for (let i = 0; i < count; i++) {
                 particles.push({
@@ -344,7 +340,7 @@
             ctx.globalAlpha = 1;
         }
 
-        // === Zeichnen ===
+        // === Drawing Functions ===
         function drawRect(obj) {
             ctx.fillStyle = obj.color;
             ctx.shadowBlur = 15;
@@ -352,20 +348,17 @@
             ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
             ctx.shadowBlur = 0;
 
-            // Paddle-Highlight
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.lineWidth = 2;
             ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
         }
 
         function drawBall() {
-            // Ball Schatten
             ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.beginPath();
             ctx.arc(ball.x + 2, ball.y + 2, ball.size / 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Ball Hauptfarbe
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#fff';
@@ -374,7 +367,6 @@
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Ball Highlight
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.beginPath();
             ctx.arc(ball.x - ball.size * 0.3, ball.y - ball.size * 0.3, ball.size * 0.3, 0, Math.PI * 2);
@@ -391,7 +383,6 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Mittiger Kreis
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.beginPath();
             ctx.arc(canvas.width / 2, canvas.height / 2, 40, 0, Math.PI * 2);
@@ -399,7 +390,6 @@
         }
 
         function draw() {
-            // Hintergrund
             ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -410,12 +400,11 @@
             drawParticles();
         }
 
-        // === Spiellogik ===
+        // === Game Logic ===
         function resetBall() {
             ball.x = canvas.width / 2;
             ball.y = canvas.height / 2;
 
-            // Ball startet in Richtung des letzten Treffers oder zufällig
             const direction = lastHitPlayer === 1 ? -1 : 1;
             ball.speedX = (Math.random() > 0.5 ? 1 : -1) * direction * ball.baseSpeed;
             ball.speedY = (Math.random() * 2 - 1) * ball.baseSpeed * 1.5;
@@ -424,68 +413,48 @@
         }
 
         function updateBall() {
-            // Ball Bewegung
             ball.x += ball.speedX;
             ball.y += ball.speedY;
 
-            // Ball-Geschwindigkeit anpassen
             const currentSpeed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2);
             if (currentSpeed > MAX_SPEED) {
                 ball.speedX = (ball.speedX / currentSpeed) * MAX_SPEED;
                 ball.speedY = (ball.speedY / currentSpeed) * MAX_SPEED;
             }
 
-            // Ball-Wandencollision (oben/unten)
             if (ball.y <= 0 || ball.y >= canvas.height) {
                 ball.speedY *= -1;
                 playSound('hit');
                 createParticles(ball.x, ball.y, '#fff', 10);
             }
 
-            // Ball-Paddle-Kollision
-            if (
-                ball.x - ball.size/2 < player1.x + player1.width &&
-                ball.y + ball.size/2 > player1.y &&
-                ball.y - ball.size/2 < player1.y + player1.height
-            ) {
-                ball.speedX *= -1;
+            const ballLeft = ball.x - ball.size/2;
+            const ballRight = ball.x + ball.size/2;
+            const ballTop = ball.y - ball.size/2;
+            const ballBottom = ball.y + ball.size/2;
+
+            if (ballRight > player1.x && ballLeft < player1.x + player1.width &&
+                ballTop < player1.y + player1.height && ballBottom > player1.y) {
+                ball.speedX *= -1.05;
                 lastHitPlayer = 1;
                 playSound('hit');
                 createParticles(ball.x, ball.y, player1.color, 15);
 
-                // Ball beschleunigen
-                ball.speedMultiplier = Math.min(ball.speedMultiplier + 0.1, 2);
-                ball.speedX = (Math.abs(ball.speedX) + 0.5) * ball.speedMultiplier * (ball.speedX < 0 ? -1 : 1);
-                ball.speedY = (ball.speedY * 1.1) * (ball.speedY > 0 ? 1 : -1);
-
-                // Ball Richtung basierend auf Paddlemitte anpassen
-                const paddleCenter = player1.y + player1.height / 2;
-                const ballToPaddle = ball.y - paddleCenter;
-                ball.speedY = ballToPaddle * 0.5;
+                const hitPosition = (ball.y - player1.y) / player1.height;
+                ball.speedY = (hitPosition - 0.5) * 8;
             }
 
-            if (
-                ball.x + ball.size/2 > player2.x &&
-                ball.y + ball.size/2 > player2.y &&
-                ball.y - ball.size/2 < player2.y + player2.height
-            ) {
-                ball.speedX *= -1;
+            if (ballLeft < player2.x + player2.width && ballRight > player2.x &&
+                ballTop < player2.y + player2.height && ballBottom > player2.y) {
+                ball.speedX *= -1.05;
                 lastHitPlayer = 2;
                 playSound('hit');
                 createParticles(ball.x, ball.y, player2.color, 15);
 
-                // Ball beschleunigen
-                ball.speedMultiplier = Math.min(ball.speedMultiplier + 0.1, 2);
-                ball.speedX = (Math.abs(ball.speedX) + 0.5) * ball.speedMultiplier * (ball.speedX < 0 ? -1 : 1);
-                ball.speedY = (ball.speedY * 1.1) * (ball.speedY > 0 ? 1 : -1);
-
-                // Ball Richtung basierend auf Paddlemitte anpassen
-                const paddleCenter = player2.y + player2.height / 2;
-                const ballToPaddle = ball.y - paddleCenter;
-                ball.speedY = ballToPaddle * 0.5;
+                const hitPosition = (ball.y - player2.y) / player2.height;
+                ball.speedY = (hitPosition - 0.5) * 8;
             }
 
-            // Ball aus dem Spiel (Punkte)
             if (ball.x < 0) {
                 player2Score++;
                 aiScoreDisplay.textContent = player2Score;
@@ -496,7 +465,6 @@
                     endGame(2);
                     return;
                 }
-
                 resetBall();
             } else if (ball.x > canvas.width) {
                 player1Score++;
@@ -508,17 +476,14 @@
                     endGame(1);
                     return;
                 }
-
                 resetBall();
             }
         }
 
         function movePlayer1() {
-            // Sanfte Bewegung mit Dämpfung
             player1.y += player1.speed * 0.1;
-            player1.speed *= 0.8; // Dämpfung
+            player1.speed *= 0.8;
 
-            // Begrenzung
             if (player1.y < 0) {
                 player1.y = 0;
                 player1.speed = 0;
@@ -528,47 +493,40 @@
                 player1.speed = 0;
             }
 
-            // Zielverfolgung
             const diff = player1.targetY - (player1.y + player1.height / 2);
             player1.speed = diff * 0.3;
         }
 
         function movePlayer2() {
             if (gameMode === 'ai') {
-                // KI-Logik mit Schwierigkeitsgraden
                 const center = player2.y + player2.height / 2;
                 let target = ball.y;
 
-                // Vorhersage basierend auf Schwierigkeitsgrad
-                if (difficulty === 'hard') {
-                    // Ballvorhersage
-                    const timeToReachCenterX = (canvas.width/2 - ball.x) / Math.abs(ball.speedX);
-                    target = ball.y + ball.speedY * timeToReachCenterX;
-                } else if (difficulty === 'medium') {
-                    // Teilweise Vorhersage
-                    target = ball.y + ball.speedY * 0.5;
+                switch(difficulty) {
+                    case 'easy':
+                        target = ball.y;
+                        break;
+                    case 'medium': {
+                        const timeToReachCenterX = (canvas.width/2 - ball.x) / Math.abs(ball.speedX);
+                        target = ball.y + ball.speedY * timeToReachCenterX * 0.7;
+                        break;
+                    }
+                    case 'hard': {
+                        const timeToReachCenterX = (canvas.width/2 - ball.x) / Math.abs(ball.speedX);
+                        target = ball.y + ball.speedY * timeToReachCenterX;
+                        break;
+                    }
                 }
 
-                // Bewegung
                 const diff = target - center;
-                player2.speed = diff * 0.3;
+                player2.speed = diff * 0.4;
 
-                // Begrenzung
-                player2.y += player2.speed * 0.1;
-                if (player2.y < 0) {
-                    player2.y = 0;
-                    player2.speed = 0;
-                }
-                if (player2.y + player2.height > canvas.height) {
-                    player2.y = canvas.height - player1.height;
-                    player2.speed = 0;
-                }
+                player2.y += player2.speed;
+                player2.y = Math.max(0, Math.min(canvas.height - player2.height, player2.y));
             } else {
-                // Zwei-Spieler-Modus
                 player2.y += player2.speed * 0.1;
                 player2.speed *= 0.8;
 
-                // Begrenzung
                 if (player2.y < 0) {
                     player2.y = 0;
                     player2.speed = 0;
@@ -578,7 +536,6 @@
                     player2.speed = 0;
                 }
 
-                // Zielverfolgung
                 const diff = player2.targetY - (player2.y + player2.height / 2);
                 player2.speed = diff * 0.3;
             }
@@ -587,41 +544,32 @@
         function gameLoop() {
             if (!gameRunning) return;
 
-            // Canvas aktualisieren
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
 
-            // Spielerpositionen aktualisieren
             movePlayer1();
             movePlayer2();
-
-            // Ball bewegen und kollidieren
             updateBall();
-
-            // Zeichnen
             draw();
 
-            // Nächster Frame
             animationId = requestAnimationFrame(gameLoop);
         }
 
+        // === Game Flow ===
         function startGame() {
             if (gameRunning) return;
 
-            // Spielernamen speichern
             const player1Input = document.getElementById('player1-name').value.trim();
             const player2Input = document.getElementById('player2-name').value.trim();
 
             if (player1Input) player1Name = player1Input;
             if (player2Input) player2Name = player2Input;
 
-            // Anzeigename aktualisieren
             player1NameDisplay.textContent = player1Name;
             if (gameMode === '2p') {
                 document.getElementById('ai-score-container').textContent = `${player2Name}: `;
             }
 
-            // Spielzustand zurücksetzen
             player1Score = 0;
             player2Score = 0;
             playerScoreDisplay.textContent = '0';
@@ -629,19 +577,15 @@
             gameWon = false;
             ball.speedMultiplier = 1;
 
-            // Überlay verstecken
             overlay.classList.add('hidden');
 
-            // Spielerpositionen setzen
             player1.x = 15;
             player1.y = canvas.height / 2 - player1.height / 2;
             player2.x = canvas.width - 15 - player2.width;
             player2.y = canvas.height / 2 - player2.height / 2;
 
-            // Ball zurücksetzen
             resetBall();
 
-            // Spiel starten
             gameRunning = true;
             gameLoop();
         }
@@ -653,10 +597,8 @@
             const winnerName = winner === 1 ? player1Name : (gameMode === 'ai' ? 'CPU' : player2Name);
             const loserName = winner === 1 ? (gameMode === 'ai' ? 'CPU' : player2Name) : player1Name;
 
-            // Scoreboard aktualisieren
             addToScoreboard(winnerName, loserName, player1Score, player2Score);
 
-            // Überlay anzeigen
             overlay.innerHTML = `
                 <h2>PONG</h2>
                 <h3>${winnerName} hat gewonnen!</h3>
@@ -696,7 +638,6 @@
             document.getElementById('btn-ai').classList.toggle('active', mode === 'ai');
             document.getElementById('btn-2p').classList.toggle('active', mode === '2p');
 
-            // AI-Score anzeigen/verstecken
             if (mode === 'ai') {
                 aiScoreContainer.style.display = 'block';
                 document.getElementById('ai-score-container').textContent = 'CPU: ';
@@ -713,7 +654,7 @@
             event.target.classList.add('active');
         }
 
-        // === Scoreboard-Funktionen ===
+        // === Scoreboard ===
         function addToScoreboard(winner, loser, winnerScore, loserScore) {
             const entry = {
                 date: new Date().toLocaleString(),
@@ -724,12 +665,10 @@
 
             scoreboardData.push(entry);
 
-            // Nur die letzten 20 Einträge behalten
             if (scoreboardData.length > 20) {
                 scoreboardData.shift();
             }
 
-            // In localStorage speichern
             localStorage.setItem('pongScoreboard', JSON.stringify(scoreboardData));
         }
 
@@ -737,7 +676,6 @@
             overlay.classList.add('hidden');
             scoreboard.classList.remove('hidden');
 
-            // Scoreboard-Einträge anzeigen
             scoreboardEntries.innerHTML = '';
 
             if (scoreboardData.length === 0) {
@@ -745,7 +683,6 @@
                 return;
             }
 
-            // Nach Datum sortieren (neueste zuerst)
             const sortedScores = [...scoreboardData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             sortedScores.forEach(entry => {
@@ -764,36 +701,33 @@
             showMainMenu();
         }
 
-        // === Steuerung ===
+        // === Input Handling ===
         function handleMouseMove(e) {
-            if (!gameRunning || gameMode !== 'ai') return;
+            if (!gameRunning) return;
 
             const rect = canvas.getBoundingClientRect();
             const y = e.clientY - rect.top;
 
-            // Spieler 1 steuern
-            player1.targetY = y - player1.height / 2;
+            if (!player1.isTouching) {
+                player1.targetY = y - player1.height / 2;
+            }
         }
 
         function handleKeyDown(e) {
-            if (!gameRunning) return;
+            if (!gameRunning || gameMode !== '2p') return;
 
-            if (gameMode === '2p') {
-                if (e.key === 'ArrowUp') {
-                    player2.targetY = player2.y - 10;
-                } else if (e.key === 'ArrowDown') {
-                    player2.targetY = player2.y + 10;
-                }
+            if (e.key === 'ArrowUp') {
+                player2.targetY = player2.y - 10;
+            } else if (e.key === 'ArrowDown') {
+                player2.targetY = player2.y + 10;
             }
         }
 
         function handleKeyUp(e) {
-            if (!gameRunning) return;
+            if (!gameRunning || gameMode !== '2p') return;
 
-            if (gameMode === '2p') {
-                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                    player2.targetY = player2.y + player2.height / 2;
-                }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                player2.targetY = player2.y + player2.height / 2;
             }
         }
 
@@ -801,9 +735,9 @@
             if (!gameRunning) return;
 
             const touchX = e.touches[0].clientX;
-            const touchY = e.touches[0].clientY;
+            const rect = canvas.getBoundingClientRect();
 
-            if (touchX < canvas.width / 2) {
+            if (touchX < rect.left + rect.width/2) {
                 touchLeftActive = true;
                 player1.isTouching = true;
             } else {
@@ -813,17 +747,17 @@
         }
 
         function handleTouchMove(e) {
-            if (!gameRunning) return;
+            if (!gameRunning || e.touches.length === 0) return;
 
             const touchX = e.touches[0].clientX;
-            const touchY = e.touches[0].clientY;
+            const rect = canvas.getBoundingClientRect();
 
-            if (touchLeftActive && touchX < canvas.width / 2) {
-                const rect = canvas.getBoundingClientRect();
-                player1.targetY = touchY - rect.top - player1.height / 2;
-            } else if (touchRightActive && touchX > canvas.width / 2) {
-                const rect = canvas.getBoundingClientRect();
-                player2.targetY = touchY - rect.top - player2.height / 2;
+            if (touchLeftActive && touchX < rect.left + rect.width/2) {
+                const y = e.touches[0].clientY - rect.top;
+                player1.targetY = y - player1.height / 2;
+            } else if (touchRightActive && touchX > rect.left + rect.width/2) {
+                const y = e.touches[0].clientY - rect.top;
+                player2.targetY = y - player2.height / 2;
             }
         }
 
@@ -838,7 +772,21 @@
             }
         }
 
-        // === Event-Listener ===
+        // === Initialization ===
+        function init() {
+            initSounds();
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            player1.x = 15;
+            player1.y = canvas.height / 2 - player1.height / 2;
+            player2.x = canvas.width - 15 - player2.width;
+            player2.y = canvas.height / 2 - player2.height / 2;
+
+            resetBall();
+        }
+
+        // === Event Listeners ===
         canvas.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
@@ -846,31 +794,8 @@
         canvas.addEventListener('touchmove', handleTouchMove);
         canvas.addEventListener('touchend', handleTouchEnd);
 
-        // === Initialisierung ===
-        function init() {
-            initSounds();
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-
-            // Spielerpositionen initialisieren
-            player1.x = 15;
-            player1.y = canvas.height / 2 - player1.height / 2;
-            player2.x = canvas.width - 15 - player2.width;
-            player2.y = canvas.height / 2 - player2.height / 2;
-
-            // Ball initialisieren
-            resetBall();
-        }
-
         window.addEventListener('resize', init);
         init();
-
-        // Scoreboard-Button hinzufügen
-        document.getElementById('scoreboard').addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                hideScoreboard();
-            }
-        });
     </script>
 </body>
 </html>
