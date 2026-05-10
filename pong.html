@@ -202,19 +202,19 @@
         <div id="ui-overlay">
             <h2>PONG</h2>
             <div id="mode-select">
-                <button id="btn-ai" class="active" onclick="selectMode('ai')">vs CPU</button>
-                <button id="btn-2p" onclick="selectMode('2p')">2 Spieler</button>
+                <button type="button" id="btn-ai" class="active" onclick="selectMode('ai')">vs CPU</button>
+                <button type="button" id="btn-2p" onclick="selectMode('2p')">2 Spieler</button>
             </div>
             <div class="difficulty-select" id="difficulty-select">
-                <button onclick="setDifficulty('easy')">Leicht</button>
-                <button class="active" onclick="setDifficulty('medium')">Mittel</button>
-                <button onclick="setDifficulty('hard')">Schwer</button>
+                <button type="button" onclick="setDifficulty('easy')">Leicht</button>
+                <button type="button" class="active" onclick="setDifficulty('medium')">Mittel</button>
+                <button type="button" onclick="setDifficulty('hard')">Schwer</button>
             </div>
             <div id="name-input">
                 <input type="text" id="player1-name" placeholder="Spieler 1 Name">
                 <input type="text" id="player2-name" placeholder="Spieler 2 Name (optional)">
             </div>
-            <button onclick="startGame()">Spiel starten</button>
+            <button type="button" onclick="startGame()">Spiel starten</button>
         </div>
     </div>
     <div id="score-display">
@@ -227,7 +227,7 @@
     </div>
     <div id="scoreboard" class="hidden">
         <h3>Beste Ergebnisse</h3>
-        <button onclick="hideScoreboard()">Zurück zum Menü</button>
+        <button type="button" onclick="hideScoreboard()">Zurück zum Menü</button>
         <div id="scoreboard-entries"></div>
     </div>
 
