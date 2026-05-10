@@ -17,19 +17,27 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0c0c1a, #1a1a3e);
+            background: linear-gradient(135deg, #0a0a1a, #12122d);
             font-family: 'Courier New', monospace;
             color: #fff;
             user-select: none;
             -webkit-user-select: none;
             overflow: hidden;
+            padding: 10px;
         }
         h1 {
-            font-size: 2.5vmin;
+            font-size: 3vmin;
             margin-bottom: 1vmin;
-            text-shadow: 0 0 10px #0ff;
-            letter-spacing: 4px;
+            text-shadow: 0 0 15px #0ff, 0 0 25px #0ff;
+            letter-spacing: 6px;
             text-align: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
         }
         #game-container {
             position: relative;
@@ -37,9 +45,10 @@
             border-radius: 8px;
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
             width: 90vmin;
-            max-width: 600px;
+            max-width: 800px;
             height: 60vmin;
-            max-height: 400px;
+            max-height: 500px;
+            margin: 0 auto;
         }
         canvas {
             display: block;
@@ -57,9 +66,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(10, 10, 26, 0.95);
             z-index: 10;
-            border-radius: 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
         }
         #ui-overlay.hidden {
             display: none;
@@ -78,18 +89,22 @@
             background: transparent;
             border: 2px solid #0ff;
             color: #0ff;
-            padding: 1.5vmin 4vmin;
+            padding: 1.2vmin 3vmin;
             font-size: 2vmin;
             font-family: 'Courier New', monospace;
             cursor: pointer;
             margin: 1vmin;
-            transition: all 0.3s;
-            border-radius: 4px;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
         }
         #ui-overlay button:hover {
             background: #0ff;
             color: #000;
-            box-shadow: 0 0 15px #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 30px rgba(0, 255, 255, 0.4);
+            transform: translateY(-2px);
         }
         #score-display {
             display: flex;
@@ -146,12 +161,19 @@
             margin-bottom: 2vmin;
         }
         #name-input input {
-            background: transparent;
+            background: rgba(0, 0, 0, 0.3);
             border: 2px solid #0ff;
             color: #0ff;
             padding: 1vmin;
             font-size: 2vmin;
             text-align: center;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        #name-input input:focus {
+            outline: none;
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
         }
         #name-input input::placeholder {
             color: #aaa;
@@ -220,7 +242,7 @@
 
         // === Game State ===
         let gameMode = 'ai';
-        let difficulty = 'medium';
+        let difficulty = 'medium'; // Set medium as default difficulty
         let gameRunning = false;
         let animationId = null;
         let player1Score = 0;
@@ -308,11 +330,12 @@
                 particles.push({
                     x: x,
                     y: y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
                     life: 1,
                     color: color,
-                    size: Math.random() * 4 + 1
+                    size: Math.random() * 2 + 1,
+                    maxSize: Math.random() * 2 + 1
                 });
             }
         }
@@ -323,6 +346,12 @@
                 p.x += p.vx;
                 p.y += p.vy;
                 p.life -= 0.05;
+                
+                // Gradually shrink particles
+                if (p.size > 0.2) {
+                    p.size *= 0.96;
+                }
+                
                 if (p.life <= 0) {
                     particles.splice(i, 1);
                 }
@@ -330,46 +359,49 @@
         }
 
         function drawParticles() {
-            particles.forEach(p => {
-                ctx.globalAlpha = p.life * 0.7;
+            // Draw particles with proper alpha handling
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                ctx.globalAlpha = p.life * 0.8;
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
-            });
-            ctx.globalAlpha = 1;
+            }
         }
 
         // === Drawing Functions ===
         function drawRect(obj) {
+            // Draw paddle with background clear in a single operation
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(obj.x - 2, obj.y - 2, obj.width + 4, obj.height + 4);
+            
             ctx.fillStyle = obj.color;
             ctx.shadowBlur = 15;
             ctx.shadowColor = obj.color;
             ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
             ctx.shadowBlur = 0;
 
+            // Add a subtle border for better definition
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1;
             ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
         }
 
         function drawBall() {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.beginPath();
-            ctx.arc(ball.x + 2, ball.y + 2, ball.size / 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#fff';
-            ctx.shadowBlur = 20;
+            // Draw the ball with better anti-aliasing and clearer definition
+            ctx.shadowBlur = 15;
             ctx.shadowColor = '#fff';
+            ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.size / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            
+            // Add a subtle highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
             ctx.beginPath();
-            ctx.arc(ball.x - ball.size * 0.3, ball.y - ball.size * 0.3, ball.size * 0.3, 0, Math.PI * 2);
+            ctx.arc(ball.x - ball.size * 0.2, ball.y - ball.size * 0.2, ball.size * 0.2, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -390,6 +422,10 @@
         }
 
         function draw() {
+            // Clear entire canvas with a single operation to prevent artifacts
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Redraw background
             ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -398,6 +434,9 @@
             drawRect(player2);
             drawBall();
             drawParticles();
+            
+            // Reset globalAlpha after particle drawing
+            ctx.globalAlpha = 1;
         }
 
         // === Game Logic ===
@@ -413,19 +452,29 @@
         }
 
         function updateBall() {
+            // Store previous position for better collision detection
+            const prevX = ball.x;
+            const prevY = ball.y;
+            
             ball.x += ball.speedX;
             ball.y += ball.speedY;
 
+            // Limit maximum speed
             const currentSpeed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2);
             if (currentSpeed > MAX_SPEED) {
                 ball.speedX = (ball.speedX / currentSpeed) * MAX_SPEED;
                 ball.speedY = (ball.speedY / currentSpeed) * MAX_SPEED;
             }
 
+            // Wall collision with better handling
             if (ball.y <= 0 || ball.y >= canvas.height) {
                 ball.speedY *= -1;
                 playSound('hit');
                 createParticles(ball.x, ball.y, '#fff', 10);
+                
+                // Adjust position to prevent sticking to walls
+                if (ball.y < 0) ball.y = 0;
+                if (ball.y > canvas.height) ball.y = canvas.height;
             }
 
             const ballLeft = ball.x - ball.size/2;
@@ -433,28 +482,49 @@
             const ballTop = ball.y - ball.size/2;
             const ballBottom = ball.y + ball.size/2;
 
+            // Player 1 collision (left paddle)
             if (ballRight > player1.x && ballLeft < player1.x + player1.width &&
                 ballTop < player1.y + player1.height && ballBottom > player1.y) {
-                ball.speedX *= -1.05;
+                
+                // Calculate precise hit position
+                const hitPosition = (ball.y - player1.y) / player1.height;
+                const angle = (hitPosition - 0.5) * Math.PI / 2; // -45° to 45°
+                const speed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2) * 1.05;
+                
+                // Set new direction with angle-based physics
+                ball.speedX = Math.abs(ball.speedX) * 1.05; // Always move right
+                ball.speedY = Math.sin(angle) * speed;
+                
                 lastHitPlayer = 1;
                 playSound('hit');
                 createParticles(ball.x, ball.y, player1.color, 15);
-
-                const hitPosition = (ball.y - player1.y) / player1.height;
-                ball.speedY = (hitPosition - 0.5) * 8;
+                
+                // Prevent ball from getting stuck in paddle
+                ball.x = player1.x + player1.width + ball.size/2 + 1;
             }
 
+            // Player 2 collision (right paddle)
             if (ballLeft < player2.x + player2.width && ballRight > player2.x &&
                 ballTop < player2.y + player2.height && ballBottom > player2.y) {
-                ball.speedX *= -1.05;
+                
+                // Calculate precise hit position
+                const hitPosition = (ball.y - player2.y) / player2.height;
+                const angle = (hitPosition - 0.5) * Math.PI / 2; // -45° to 45°
+                const speed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2) * 1.05;
+                
+                // Set new direction with angle-based physics
+                ball.speedX = -Math.abs(ball.speedX) * 1.05; // Always move left
+                ball.speedY = Math.sin(angle) * speed;
+                
                 lastHitPlayer = 2;
                 playSound('hit');
                 createParticles(ball.x, ball.y, player2.color, 15);
-
-                const hitPosition = (ball.y - player2.y) / player2.height;
-                ball.speedY = (hitPosition - 0.5) * 8;
+                
+                // Prevent ball from getting stuck in paddle
+                ball.x = player2.x - ball.size/2 - 1;
             }
 
+            // Scoring
             if (ball.x < 0) {
                 player2Score++;
                 aiScoreDisplay.textContent = player2Score;
@@ -481,20 +551,17 @@
         }
 
         function movePlayer1() {
-            // player1.y += player1.speed * 0.1;
-            // player1.speed *= 0.8;
-
+            // Smooth movement with proper boundary checking
             if (player1.y < 0) {
                 player1.y = 0;
-                player1.speed = 0;
             }
             if (player1.y + player1.height > canvas.height) {
                 player1.y = canvas.height - player1.height;
-                player1.speed = 0;
             }
 
+            // Move towards target position with smooth acceleration
             const diff = player1.targetY - (player1.y + player1.height / 2);
-            player1.y = player1.targetY; // set exact position
+            player1.y += diff * 0.1; // Smooth movement instead of exact positioning
         }
 
         function movePlayer2() {
@@ -504,48 +571,68 @@
 
                 switch(difficulty) {
                     case 'easy':
-                        target = ball.y;
+                        // Easy: Random movement with some accuracy
+                        target = ball.y + (Math.random() - 0.5) * 120;
                         break;
                     case 'medium': {
-                        const timeToReachCenterX = (canvas.width/2 - ball.x) / Math.abs(ball.speedX);
-                        target = ball.y + ball.speedY * timeToReachCenterX * 0.7;
+                        // Medium: Predictive but with some error
+                        const timeToReachCenterX = Math.abs((canvas.width/2 - ball.x) / ball.speedX);
+                        target = ball.y + ball.speedY * timeToReachCenterX * 0.7 + (Math.random() - 0.5) * 40;
                         break;
                     }
                     case 'hard': {
-                        const timeToReachCenterX = (canvas.width/2 - ball.x) / Math.abs(ball.speedX);
+                        // Hard: Perfect prediction
+                        const timeToReachCenterX = Math.abs((canvas.width/2 - ball.x) / ball.speedX);
                         target = ball.y + ball.speedY * timeToReachCenterX;
                         break;
                     }
                 }
+                
+                // Ensure target is within canvas bounds
+                target = Math.max(player2.height/2, Math.min(canvas.height - player2.height/2, target));
+
+                // Add some randomness to make it more human-like
+                if (difficulty !== 'hard') {
+                    target += (Math.random() - 0.5) * 25;
+                }
 
                 const diff = target - center;
-                player2.speed = diff * 0.8;
-
-                player2.y += player2.speed;
-                player2.y = Math.max(0, Math.min(canvas.height - player2.height, player2.y));
-            } else {
-                player2.y += player2.speed * 0.1;
-                player2.speed *= 0.8;
-
+                player2.y += diff * 0.07; // Slightly slower movement for smoother feel
+                
+                // Boundary checking with better handling
                 if (player2.y < 0) {
                     player2.y = 0;
-                    player2.speed = 0;
                 }
                 if (player2.y + player2.height > canvas.height) {
                     player2.y = canvas.height - player2.height;
-                    player2.speed = 0;
                 }
-
-                const diff = player2.targetY - (player2.y + player2.height / 2);
-                player2.speed = diff * 0.6;
+            } else {
+                // 2-player mode movement
+                const center = player2.y + player2.height / 2;
+                const diff = player2.targetY - center;
+                player2.y += diff * 0.1; // Smooth movement
+                
+                // Boundary checking
+                if (player2.y < 0) {
+                    player2.y = 0;
+                }
+                if (player2.y + player2.height > canvas.height) {
+                    player2.y = canvas.height - player2.height;
+                }
             }
         }
 
         function gameLoop() {
             if (!gameRunning) return;
 
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            // Only resize canvas if dimensions have changed significantly
+            const newWidth = canvas.offsetWidth;
+            const newHeight = canvas.offsetHeight;
+            
+            if (Math.abs(canvas.width - newWidth) > 1 || Math.abs(canvas.height - newHeight) > 1) {
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+            }
 
             movePlayer1();
             movePlayer2();
@@ -613,6 +700,9 @@
         }
 
         function showMainMenu() {
+            // Store current difficulty before rebuilding menu
+            const currentDifficulty = difficulty;
+            
             overlay.innerHTML = `
                 <h2>PONG</h2>
                 <div id="mode-select">
@@ -621,7 +711,7 @@
                 </div>
                 <div class="difficulty-select" id="difficulty-select">
                     <button onclick="setDifficulty('easy')">Leicht</button>
-                    <button class="active" onclick="setDifficulty('medium')">Mittel</button>
+                    <button onclick="setDifficulty('medium')">Mittel</button>
                     <button onclick="setDifficulty('hard')">Schwer</button>
                 </div>
                 <div id="name-input">
@@ -630,6 +720,25 @@
                 </div>
                 <button onclick="startGame()">Spiel starten</button>
             `;
+            
+            // Restore difficulty selection after menu is rebuilt
+            const newDifficultySelect = document.getElementById('difficulty-select');
+            if (newDifficultySelect) {
+                const buttons = newDifficultySelect.querySelectorAll('button');
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                if (currentDifficulty === 'easy') {
+                    buttons[0].classList.add('active');
+                } else if (currentDifficulty === 'medium') {
+                    buttons[1].classList.add('active');
+                } else if (currentDifficulty === 'hard') {
+                    buttons[2].classList.add('active');
+                }
+            }
+            
+            // Re-assign difficultySelect to the new element
+            difficultySelect = newDifficultySelect;
+            
             overlay.classList.remove('hidden');
         }
 
@@ -650,8 +759,21 @@
         function setDifficulty(level) {
             difficulty = level;
             const buttons = difficultySelect.querySelectorAll('button');
+            
+            // Remove active class from all buttons
             buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Add active class to the correct button based on level
+            if (level === 'easy') {
+                buttons[0].classList.add('active');
+            } else if (level === 'medium') {
+                buttons[1].classList.add('active');
+            } else if (level === 'hard') {
+                buttons[2].classList.add('active');
+            }
+            
+            // Update the stored difficulty variable
+            difficulty = level;
         }
 
         // === Scoreboard ===
@@ -775,8 +897,16 @@
         // === Initialization ===
         function init() {
             initSounds();
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            
+            // Set initial canvas size
+            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            } else {
+                // Fallback values
+                canvas.width = 600;
+                canvas.height = 400;
+            }
 
             player1.x = 15;
             player1.y = canvas.height / 2 - player1.height / 2;

@@ -12,8 +12,10 @@ Einfach `index.html` im Browser öffnen. Fertig.
 - **2 Spieler**: Lokal gegen einen Freund am selben Gerät
 - Canvas-basiertes Rendering mit 60 FPS
 - Neon-Glow-Design mit Partikel-Effekten
-- Ball wird bei jedem Treffer schneller (max Speed 12)
+- Ball wird bei jedem Treffer schneller (max Speed 14)
 - Erster Spieler mit 5 Punkten gewinnt
+- Verbesserte Physik und flüssigere Bewegungen
+- Bessere Responsive Gestaltung
 
 ## Steuerung
 
@@ -29,6 +31,12 @@ Einfach `index.html` im Browser öffnen. Fertig.
 - **HTML5 Canvas**: Direktes 2D-Rendering mit `requestAnimationFrame`
 - **Responsive**: Funktioniert auf Desktop und Mobile
 
+## Verbesserungen
+
+- **KI-Optimierung**: Flüssigere und realistischere KI-Bewegung
+- **UI-Verbesserungen**: Modernes Design mit Animationen und Schatten
+- **Physik-Optimierung**: Realistischere Ball-Bewegung und Kollisionen
+
 ## Datei
 
-- [`index.html`](index.html) – Das komplette Spiel (~400 Zeilen)
+- [`pong.html`](pong.html) – Das komplette Spiel (~400 Zeilen)
