@@ -25,6 +25,7 @@
             overflow: hidden;
             padding: 10px;
         }
+
         h1 {
             font-size: 3vmin;
             margin-bottom: 1vmin;
@@ -39,6 +40,14 @@
             50% { opacity: 1; }
             100% { opacity: 0.7; }
         }
+        @keyframes overlayFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         #game-container {
             position: relative;
             border: 3px solid #0ff;
@@ -49,6 +58,7 @@
             height: 60vmin;
             max-height: 500px;
             margin: 0 auto;
+            overflow: hidden;
         }
         canvas {
             display: block;
@@ -66,45 +76,102 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(10, 10, 26, 0.95);
+            background: transparent;
             z-index: 10;
-            border-radius: 12px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 2vmin;
         }
         #ui-overlay.hidden {
-            display: none;
+            display: none !important;
         }
         #ui-overlay h2 {
-            font-size: 4vmin;
-            margin-bottom: 3vmin;
+            font-size: 5vmin;
+            margin: 0 0 1.5vmin 0;
             color: #0ff;
-            text-shadow: 0 0 10px currentColor;
+            text-shadow: 0 0 20px #0ff, 0 0 50px rgba(0, 255, 255, 0.6);
+            letter-spacing: 12px;
         }
         #ui-overlay p {
+            font-size: 2.5vmin;
+            margin: 0 0 2vmin 0;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+        }
+        #ui-overlay h3 {
             font-size: 3vmin;
-            margin-bottom: 3vmin;
+            color: #0ff;
+            margin: 0 0 1.5vmin 0;
+            text-shadow: 0 0 10px #0ff;
+        }
+        #ui-overlay .winner-text {
+            font-size: 3.5vmin;
+            color: #0ff;
+            margin: 0 0 1vmin 0;
+            text-shadow: 0 0 20px #0ff, 0 0 40px rgba(0, 255, 255, 0.5);
+            animation: slideUp 0.5s ease;
+        }
+        #ui-overlay .score-result {
+            font-size: 2.5vmin;
+            color: #ccc;
+            margin: 0 0 2.5vmin 0;
+        }
+        /* Screen sections */
+        .overlay-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 1vmin;
+        }
+        .overlay-screen.active {
+            display: flex;
         }
         #ui-overlay button {
-            background: transparent;
-            border: 2px solid #0ff;
+            background: rgba(0, 255, 255, 0.03);
+            border: 1.5px solid rgba(0, 255, 255, 0.35);
             color: #0ff;
-            padding: 1.2vmin 3vmin;
-            font-size: 2vmin;
+            padding: 1vmin 2vmin;
+            font-size: 1.8vmin;
             font-family: 'Courier New', monospace;
             cursor: pointer;
-            margin: 1vmin;
-            transition: all 0.3s ease;
-            border-radius: 6px;
+            margin: 0.3vmin 0.4vmin;
+            transition: all 0.2s ease;
+            border-radius: 4px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            letter-spacing: 1.5px;
+            min-width: 10vmin;
+            text-align: center;
         }
         #ui-overlay button:hover {
-            background: #0ff;
-            color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 30px rgba(0, 255, 255, 0.4);
-            transform: translateY(-2px);
+            background: rgba(0, 255, 255, 0.15);
+            color: #fff;
+            border-color: #0ff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        #ui-overlay button:active {
+            transform: translateY(0);
+        }
+        #ui-overlay button:focus {
+            outline: 2px solid #0ff;
+            outline-offset: 2px;
+        }
+        #ui-overlay button.primary-btn {
+            background: rgba(0, 255, 255, 0.12);
+            border-color: #0ff;
+            font-size: 2vmin;
+            padding: 1.2vmin 2.5vmin;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.25);
+        }
+        #ui-overlay button.primary-btn:hover {
+            background: rgba(0, 255, 255, 0.25);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        #ui-overlay button.secondary-btn {
+            font-size: 1.6vmin;
+            padding: 0.8vmin 1.5vmin;
+            border-color: rgba(0, 255, 255, 0.25);
+            min-width: 8vmin;
         }
         #score-display {
             display: flex;
@@ -128,70 +195,87 @@
             padding: 0 2vmin;
         }
         #mode-select {
-            margin: 1.5vmin 0;
             display: flex;
-            gap: 1vmin;
+            gap: 0.8vmin;
         }
         #mode-select button {
-            padding: 1vmin 2vmin;
-            font-size: 1.8vmin;
+            padding: 0.8vmin 1.8vmin;
+            font-size: 1.7vmin;
         }
         #mode-select button.active {
-            background: #0ff;
-            color: #000;
+            background: rgba(0, 255, 255, 0.15);
+            color: #fff;
+            border-color: #0ff;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
         }
         .difficulty-select {
-            margin: 1.5vmin 0;
             display: flex;
-            gap: 1vmin;
+            gap: 0.8vmin;
         }
         .difficulty-select button {
-            padding: 1vmin 2vmin;
-            font-size: 1.8vmin;
+            padding: 0.8vmin 1.8vmin;
+            font-size: 1.7vmin;
         }
         .difficulty-select button.active {
-            background: #f00;
+            background: rgba(0, 255, 255, 0.15);
             color: #fff;
-            border-color: #f00;
+            border-color: #0ff;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+        }
+        /* Scoreboard overlay styles */
+        #overlay-scoreboard {
+            width: 85%;
+            max-width: 350px;
+            max-height: 35vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        #overlay-scoreboard::-webkit-scrollbar {
+            display: none;
+        }
+        #overlay-scoreboard .score-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.7vmin 1vmin;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            font-size: 1.8vmin;
+            color: #bbb;
+        }
+        #overlay-scoreboard .score-entry:last-child {
+            border-bottom: none;
+        }
+        #overlay-scoreboard .score-entry:nth-child(even) {
+            background: rgba(0, 255, 255, 0.03);
         }
         #name-input {
             display: flex;
             flex-direction: column;
-            gap: 1vmin;
-            margin-bottom: 2vmin;
+            gap: 0.6vmin;
+            width: 100%;
+            max-width: 28vmin;
         }
         #name-input input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid #0ff;
+            background: transparent;
+            border: none;
+            border-bottom: 1.5px solid rgba(0, 255, 255, 0.3);
             color: #0ff;
-            padding: 1vmin;
+            padding: 0.6vmin 0.5vmin;
             font-size: 2vmin;
             text-align: center;
-            border-radius: 4px;
             transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
         }
         #name-input input:focus {
             outline: none;
-            border-color: #fff;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            border-bottom-color: #0ff;
+            box-shadow: 0 2px 0 #0ff;
         }
         #name-input input::placeholder {
-            color: #aaa;
+            color: rgba(170, 170, 170, 0.4);
         }
+        /* Old scoreboard - hidden, kept for reference */
         #scoreboard {
-            margin-top: 2vmin;
-            width: 80%;
-            max-width: 400px;
-        }
-        .score-entry {
-            display: flex;
-            justify-content: space-between;
-            padding: 1vmin;
-            border-bottom: 1px solid #0ff;
-            font-size: 2vmin;
-        }
-        .score-entry:nth-child(even) {
-            background: rgba(0, 255, 255, 0.1);
+            display: none;
         }
     </style>
 </head>
@@ -200,21 +284,44 @@
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-overlay">
-            <h2>PONG</h2>
-            <div id="mode-select">
-                <button type="button" id="btn-ai" class="active" onclick="selectMode('ai')">vs CPU</button>
-                <button type="button" id="btn-2p" onclick="selectMode('2p')">2 Spieler</button>
+            <!-- MAIN MENU SCREEN -->
+            <div id="screen-main-menu" class="overlay-screen active">
+                <h2>PONG</h2>
+                <div id="mode-select">
+                    <button type="button" id="btn-ai" class="active" onclick="selectMode('ai')">vs CPU</button>
+                    <button type="button" id="btn-2p" onclick="selectMode('2p')">2 Spieler</button>
+                </div>
+                <div class="difficulty-select" id="difficulty-select">
+                    <button type="button" onclick="setDifficulty('easy')">Leicht</button>
+                    <button type="button" class="active" onclick="setDifficulty('medium')">Mittel</button>
+                    <button type="button" onclick="setDifficulty('hard')">Schwer</button>
+                </div>
+                <div id="name-input">
+                    <input type="text" id="player1-name" placeholder="Spieler 1 Name" maxlength="20">
+                    <input type="text" id="player2-name" placeholder="Spieler 2 Name (optional)" maxlength="20">
+                </div>
+                <button type="button" class="primary-btn" onclick="startGame()">Spiel starten</button>
+                <button type="button" class="secondary-btn" onclick="showScoreboardScreen()">Beste Ergebnisse</button>
             </div>
-            <div class="difficulty-select" id="difficulty-select">
-                <button type="button" onclick="setDifficulty('easy')">Leicht</button>
-                <button type="button" class="active" onclick="setDifficulty('medium')">Mittel</button>
-                <button type="button" onclick="setDifficulty('hard')">Schwer</button>
+
+            <!-- GAME OVER SCREEN -->
+            <div id="screen-game-over" class="overlay-screen">
+                <h2>PONG</h2>
+                <h3 class="winner-text" id="winner-text"></h3>
+                <p class="score-result" id="score-result"></p>
+                <button type="button" class="primary-btn" onclick="restartGame()">Erneut spielen</button>
+                <button type="button" class="secondary-btn" onclick="showMainMenuScreen()">Zum Menü</button>
+                <button type="button" class="secondary-btn" onclick="showScoreboardScreen()">Beste Ergebnisse</button>
             </div>
-            <div id="name-input">
-                <input type="text" id="player1-name" placeholder="Spieler 1 Name">
-                <input type="text" id="player2-name" placeholder="Spieler 2 Name (optional)">
+
+            <!-- SCOREBOARD SCREEN -->
+            <div id="screen-scoreboard" class="overlay-screen">
+                <h2>Beste Ergebnisse</h2>
+                <div id="overlay-scoreboard">
+                    <p id="scoreboard-empty" style="color: #888; text-align: center;">Noch keine Spiele gespielt!</p>
+                </div>
+                <button type="button" class="primary-btn" onclick="showMainMenuScreen()">Zurück zum Menü</button>
             </div>
-            <button type="button" onclick="startGame()">Spiel starten</button>
         </div>
     </div>
     <div id="score-display">
@@ -225,11 +332,7 @@
         <strong>Spieler 1:</strong> Maus/Touch links | <strong>Spieler 2 (2P):</strong> Pfeiltasten ↑↓ oder Touch rechts<br>
         Erst wer 5 Punkte erreicht, gewinnt!
     </div>
-    <div id="scoreboard" class="hidden">
-        <h3>Beste Ergebnisse</h3>
-        <button type="button" onclick="hideScoreboard()">Zurück zum Menü</button>
-        <div id="scoreboard-entries"></div>
-    </div>
+
 
     <script>
         // === Game Constants ===
@@ -263,8 +366,10 @@
         const playerScoreDisplay = document.getElementById('player-score');
         const aiScoreDisplay = document.getElementById('ai-score');
         const player1NameDisplay = document.getElementById('player1-name-display');
-        const scoreboard = document.getElementById('scoreboard');
-        const scoreboardEntries = document.getElementById('scoreboard-entries');
+        const winnerText = document.getElementById('winner-text');
+        const scoreResult = document.getElementById('score-result');
+        const scoreboardEmpty = document.getElementById('scoreboard-empty');
+        const overlayScoreboard = document.getElementById('overlay-scoreboard');
 
         // === Game Objects ===
         const player1 = {
@@ -637,24 +742,38 @@
             movePlayer1();
             movePlayer2();
             updateBall();
+            updateParticles();
             draw();
 
             animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // === Screen Management ===
+        function showScreen(screenId) {
+            // Hide all screens
+            const screens = overlay.querySelectorAll('.overlay-screen');
+            screens.forEach(s => s.classList.remove('active'));
+            // Show target screen
+            document.getElementById(screenId).classList.add('active');
+            // Show overlay
+            overlay.classList.remove('hidden');
         }
 
         // === Game Flow ===
         function startGame() {
             if (gameRunning) return;
 
-            const player1Input = document.getElementById('player1-name').value.trim();
-            const player2Input = document.getElementById('player2-name').value.trim();
+            const p1Input = document.getElementById('player1-name');
+            const p2Input = document.getElementById('player2-name');
+            const player1Input = p1Input ? p1Input.value.trim() : '';
+            const player2Input = p2Input ? p2Input.value.trim() : '';
 
             if (player1Input) player1Name = player1Input;
             if (player2Input) player2Name = player2Input;
 
             player1NameDisplay.textContent = player1Name;
             if (gameMode === '2p') {
-                document.getElementById('ai-score-container').textContent = `${player2Name}: `;
+                aiScoreContainer.textContent = `${player2Name}: `;
             }
 
             player1Score = 0;
@@ -686,84 +805,49 @@
 
             addToScoreboard(winnerName, loserName, player1Score, player2Score);
 
-            overlay.innerHTML = `
-                <h2>PONG</h2>
-                <h3>${winnerName} hat gewonnen!</h3>
-                <p>${player1Name}: ${player1Score} - ${player2Name}: ${player2Score}</p>
-                <button onclick="startGame()">Erneut spielen</button>
-                <button onclick="showMainMenu()">Zurück zum Menü</button>
-                <button onclick="showScoreboard()">Scoreboard anzeigen</button>
-            `;
-            overlay.classList.remove('hidden');
+            winnerText.textContent = `${winnerName} hat gewonnen!`;
+            scoreResult.textContent = `${player1Name}: ${player1Score} - ${player2Name}: ${player2Score}`;
+
+            showScreen('screen-game-over');
 
             playSound('win');
         }
 
-        function showMainMenu() {
-            // Store current difficulty before rebuilding menu
-            const currentDifficulty = difficulty;
-            
-            overlay.innerHTML = `
-                <h2>PONG</h2>
-                <div id="mode-select">
-                    <button id="btn-ai" class="active" onclick="selectMode('ai')">vs CPU</button>
-                    <button id="btn-2p" onclick="selectMode('2p')">2 Spieler</button>
-                </div>
-                <div class="difficulty-select" id="difficulty-select">
-                    <button onclick="setDifficulty('easy')">Leicht</button>
-                    <button onclick="setDifficulty('medium')">Mittel</button>
-                    <button onclick="setDifficulty('hard')">Schwer</button>
-                </div>
-                <div id="name-input">
-                    <input type="text" id="player1-name" placeholder="Spieler 1 Name">
-                    <input type="text" id="player2-name" placeholder="Spieler 2 Name (optional)">
-                </div>
-                <button onclick="startGame()">Spiel starten</button>
-            `;
-            
-            // Restore difficulty selection after menu is rebuilt
-            const newDifficultySelect = document.getElementById('difficulty-select');
-            if (newDifficultySelect) {
-                const buttons = newDifficultySelect.querySelectorAll('button');
-                buttons.forEach(btn => btn.classList.remove('active'));
-                
-                if (currentDifficulty === 'easy') {
-                    buttons[0].classList.add('active');
-                } else if (currentDifficulty === 'medium') {
-                    buttons[1].classList.add('active');
-                } else if (currentDifficulty === 'hard') {
-                    buttons[2].classList.add('active');
-                }
+        function restartGame() {
+            // Reuse names from main menu inputs
+            const p1Input = document.getElementById('player1-name');
+            const p2Input = document.getElementById('player2-name');
+            if (p1Input) player1Name = p1Input.value.trim() || player1Name;
+            if (p2Input && gameMode === '2p') player2Name = p2Input.value.trim() || player2Name;
+            player1NameDisplay.textContent = player1Name;
+            if (gameMode === '2p') {
+                aiScoreContainer.textContent = `${player2Name}: `;
             }
-            
-            // Re-assign difficultySelect to the new element
-            difficultySelect = newDifficultySelect;
-            
-            overlay.classList.remove('hidden');
+            startGame();
+        }
+
+        function showMainMenuScreen() {
+            showScreen('screen-main-menu');
         }
 
         function selectMode(mode) {
             gameMode = mode;
-            document.getElementById('btn-ai').classList.toggle('active', mode === 'ai');
-            document.getElementById('btn-2p').classList.toggle('active', mode === '2p');
+            const btnAi = document.getElementById('btn-ai');
+            const btn2p = document.getElementById('btn-2p');
+            if (btnAi) btnAi.classList.toggle('active', mode === 'ai');
+            if (btn2p) btn2p.classList.toggle('active', mode === '2p');
 
             if (mode === 'ai') {
-                aiScoreContainer.style.display = 'block';
-                document.getElementById('ai-score-container').textContent = 'CPU: ';
+                aiScoreContainer.textContent = 'CPU: ';
             } else {
-                aiScoreContainer.style.display = 'block';
-                document.getElementById('ai-score-container').textContent = `${player2Name}: `;
+                aiScoreContainer.textContent = `${player2Name}: `;
             }
         }
 
         function setDifficulty(level) {
             difficulty = level;
             const buttons = difficultySelect.querySelectorAll('button');
-            
-            // Remove active class from all buttons
             buttons.forEach(btn => btn.classList.remove('active'));
-            
-            // Add active class to the correct button based on level
             if (level === 'easy') {
                 buttons[0].classList.add('active');
             } else if (level === 'medium') {
@@ -771,9 +855,6 @@
             } else if (level === 'hard') {
                 buttons[2].classList.add('active');
             }
-            
-            // Update the stored difficulty variable
-            difficulty = level;
         }
 
         // === Scoreboard ===
@@ -794,33 +875,28 @@
             localStorage.setItem('pongScoreboard', JSON.stringify(scoreboardData));
         }
 
-        function showScoreboard() {
-            overlay.classList.add('hidden');
-            scoreboard.classList.remove('hidden');
-
-            scoreboardEntries.innerHTML = '';
+        function showScoreboardScreen() {
+            // Build scoreboard content
+            overlayScoreboard.innerHTML = '';
 
             if (scoreboardData.length === 0) {
-                scoreboardEntries.innerHTML = '<p>Noch keine Spiele gespielt!</p>';
-                return;
+                scoreboardEmpty.style.display = 'block';
+                overlayScoreboard.appendChild(scoreboardEmpty);
+            } else {
+                scoreboardEmpty.style.display = 'none';
+                const sortedScores = [...scoreboardData].sort((a, b) => new Date(b.date) - new Date(a.date));
+                sortedScores.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'score-entry';
+                    div.innerHTML = `
+                        <span>${entry.date}</span>
+                        <span>${entry.winner} besiegte ${entry.loser} ${entry.score}</span>
+                    `;
+                    overlayScoreboard.appendChild(div);
+                });
             }
 
-            const sortedScores = [...scoreboardData].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            sortedScores.forEach(entry => {
-                const div = document.createElement('div');
-                div.className = 'score-entry';
-                div.innerHTML = `
-                    <span>${entry.date}</span>
-                    <span>${entry.winner} besiegte ${entry.loser} ${entry.score}</span>
-                `;
-                scoreboardEntries.appendChild(div);
-            });
-        }
-
-        function hideScoreboard() {
-            scoreboard.classList.add('hidden');
-            showMainMenu();
+            showScreen('screen-scoreboard');
         }
 
         // === Input Handling ===
