@@ -247,6 +247,10 @@
         #overlay-scoreboard .score-entry:nth-child(even) {
             background: rgba(0, 255, 255, 0.03);
         }
+        #scoreboard-empty {
+            color: #888;
+            text-align: center;
+        }
         #name-input {
             display: flex;
             flex-direction: column;
@@ -307,7 +311,7 @@
             <!-- GAME OVER SCREEN -->
             <div id="screen-game-over" class="overlay-screen">
                 <h2>PONG</h2>
-                <h3 class="winner-text" id="winner-text"></h3>
+                <h3 class="winner-text" id="winner-text">&nbsp;</h3>
                 <p class="score-result" id="score-result"></p>
                 <button type="button" class="primary-btn" onclick="restartGame()">Erneut spielen</button>
                 <button type="button" class="secondary-btn" onclick="showMainMenuScreen()">Zum Menü</button>
@@ -318,7 +322,7 @@
             <div id="screen-scoreboard" class="overlay-screen">
                 <h2>Beste Ergebnisse</h2>
                 <div id="overlay-scoreboard">
-                    <p id="scoreboard-empty" style="color: #888; text-align: center;">Noch keine Spiele gespielt!</p>
+                    <p id="scoreboard-empty">Noch keine Spiele gespielt!</p>
                 </div>
                 <button type="button" class="primary-btn" onclick="showMainMenuScreen()">Zurück zum Menü</button>
             </div>
