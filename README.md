@@ -1,10 +1,14 @@
 # Pong Game
 
+🌐 **Live spielen:** <https://dawasteh.github.io/Pong/>
+
 Ein klassisches Pong-Spiel, komplett in einer einzigen HTML-Datei implementiert. Kein Server, keine Abhängigkeiten, kein Build-Prozess – einfach im Browser öffnen und spielen.
 
 ## Spiel starten
 
-Einfach `index.html` im Browser öffnen. Fertig.
+Online spielen: **<https://dawasteh.github.io/Pong/>**
+
+Oder lokal: Einfach `index.html` im Browser öffnen. Fertig.
 
 ## Features
 
